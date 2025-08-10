@@ -15,4 +15,4 @@ class ExamEventViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ExamEventSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
-    ordering_fields = ['date']
+    ordering_fields = ['name','date']

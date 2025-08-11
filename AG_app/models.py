@@ -51,6 +51,13 @@ class News(models.Model):
     photo = models.ImageField(upload_to='news/', blank=True, null=True)
 
     def __str__(self):
-        return f'{self.name}{self.created_at}'
+        return f'{self.name}  {self.created_at}'
 
     
+#Activity
+class Activity(models.Model):
+    name = models.CharField(max_length=200)
+    title = models.TextField()
+    photo = models.ImageField(upload_to='activity/', blank=True, null=True)
+    def __str__(self):
+        return f'{self.name}'

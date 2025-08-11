@@ -1,5 +1,5 @@
-from .models import Teachers, ExamEvents, News
-from .serializers import TeacherSerializer, ExamEventSerializer, NewsSerializer
+from .models import Teachers, ExamEvents, News, Activity
+from .serializers import TeacherSerializer, ExamEventSerializer, NewsSerializer, ActivitySerializer
 from django.http import HttpResponse, JsonResponse
 from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
@@ -97,6 +97,16 @@ def news_list(request):
     if request.method == 'GET':
         obj = News.objects.all()
         serializer = NewsSerializer(obj, many=True)
+        return Response(serializer.data)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+#Activity
+@api_view(['GET'])
+def activity_list(request):
+    if request.method == 'GET':
+        obj = Activity.objects.all()
+        serializer = ActivitySerializer(obj, many=True)
         return Response(serializer.data)
     return Response(status=status.HTTP_400_BAD_REQUEST)
     

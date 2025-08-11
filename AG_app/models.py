@@ -6,8 +6,8 @@ from django.db import models
 class Teachers(models.Model):
     teacher_id = models.AutoField(primary_key = True)
     first_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100)
-    subject = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100, blank=True)
+    subject = models.CharField(max_length=100, blank=True)
     experience_years = models.IntegerField(null = True, blank = True)
     credentials = models.CharField(max_length=200, blank = True)
     bio = models.TextField(blank=True)

@@ -1,47 +1,104 @@
-from .models import Teachers, ExamEvents
-from .serializers import TeacherSerializer, ExamEventSerializer
+from .models import Teachers, ExamEvents, News
+from .serializers import TeacherSerializer, ExamEventSerializer, NewsSerializer
 from django.http import HttpResponse, JsonResponse
 from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 
 
-@csrf_exempt
+
+
+
+#Function based API ------******--------
+# @csrf_exempt
+# def teacher_list(request):
+#     if request.method == "GET":
+#         obj = Teachers.objects.all()
+#         serializer = TeacherSerializer(obj, many = True)
+#         return JsonResponse(serializer.data, safe=False)
+#     elif request.method == "POST":
+#         data = JSONParser().parse(request)
+#         serializer = TeacherSerializer(data = data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return JsonResponse(serializer.data)
+#         return JsonResponse(serializer.errors, status=400)
+        
+#     return HttpResponse(status = 400)
+
+# @csrf_exempt
+# def teacher_detail(request, pk):
+    # try:
+    #     obj = Teachers.objects.get(pk=pk)
+    # except Teachers.DoesNotExist:
+    #     return HttpResponse(status=404)
+    
+    # if request.method == 'GET':
+    #     serializer = TeacherSerializer(obj)
+    #     return JsonResponse(serializer.data)
+    # elif request.method == 'PUT':
+    #     data = JSONParser().parse(request)
+    #     serializer = TeacherSerializer(obj, data=data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return JsonResponse(serializer.data)
+    #     return JsonResponse(serializer.errors, status=400)
+    # elif request.method == 'DELETE':
+    #     obj.delete()
+    #     return HttpResponse(status=204)
+#Function based API ------******--------
+
+
+
+@api_view(["GET", "POST"])
 def teacher_list(request):
     if request.method == "GET":
         obj = Teachers.objects.all()
         serializer = TeacherSerializer(obj, many = True)
-        return JsonResponse(serializer.data, safe=False)
+        return Response(serializer.data)
     elif request.method == "POST":
-        data = JSONParser().parse(request)
-        serializer = TeacherSerializer(data = data)
+        # data = JSONParser().parse(request)
+        serializer = TeacherSerializer(data = request.data) #aslynda json parseri cagyryp data=data edilyadi emma @api_view komegi bilen sadalasdy
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-    return HttpResponse(status = 400)
+    return Response(status = status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
+
+@api_view(['GET','PUT', 'DELETE'])
 def teacher_detail(request, pk):
     try:
         obj = Teachers.objects.get(pk=pk)
     except Teachers.DoesNotExist:
-        return HttpResponse(status=404)
+        return Response(status=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
         serializer = TeacherSerializer(obj)
-        return JsonResponse(serializer.data)
+        return Response(serializer.data)
     elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-        serializer = TeacherSerializer(obj, data=data)
+        # data = JSONParser().parse(request)
+        serializer = TeacherSerializer(obj, data = request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
         obj.delete()
-        return HttpResponse(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+#News
+@api_view(['GET'])
+def news_list(request):
+    if request.method == 'GET':
+        obj = News.objects.all()
+        serializer = NewsSerializer(obj, many=True)
+        return Response(serializer.data)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
+    
 
-        
+

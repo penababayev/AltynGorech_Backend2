@@ -41,4 +41,16 @@ class Contacts(models.Model):
     email = models.EmailField(blank=True)
     message = models.TextField()
     submitted_at = models.DateTimeField(auto_now_add=True)
+
+
+#News
+class News(models.Model):
+    name = models.CharField(max_length=200)
+    title = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    photo = models.ImageField(upload_to='news/', blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.name}{self.created_at}'
+
     

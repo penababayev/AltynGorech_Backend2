@@ -120,9 +120,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 # MEDIA_URL = 'images/'
-STATICFILES_DIR = (
-    os.path.join(BASE_DIR, 'static'),
-)
+# STATICFILES_DIR = (
+#     os.path.join(BASE_DIR, 'static'),
+# )
+
+MEDIA_ROOT = BASE_DIR / 'MEDIA' #its for image
+MEDIA_URL = '/media/' # its for showing images
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

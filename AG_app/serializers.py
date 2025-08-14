@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Teachers, ExamEvents, ExamVenues, News, Activity
+from .models import Teachers, ExamEvents, ExamVenues, News, Activity, Video
 
 class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,4 +25,9 @@ class NewsSerializer(serializers.ModelSerializer):
 class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
+        fields = '__all__'
+
+class VideoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Video
         fields = '__all__'

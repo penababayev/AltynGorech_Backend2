@@ -48,10 +48,14 @@ class News(models.Model):
     name = models.CharField(max_length=200)
     title = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    photo = models.ImageField(upload_to='news/', blank=True, null=True)
+    image = models.ImageField(upload_to='news/', blank=True, null=True)
 
     def __str__(self):
-        return f'{self.name}  {self.created_at}'
+        return f'{self.name}  {self.created_at} {self.image}'
+    
+    def delete(self):
+        self.image.delete()
+        super().delete()
 
     
 #Activity
@@ -61,3 +65,12 @@ class Activity(models.Model):
     photo = models.ImageField(upload_to='activity/', blank=True, null=True)
     def __str__(self):
         return f'{self.name}'
+
+
+#Videos
+class Video(models.Model):
+    caption = models.CharField(max_length=100)
+    video = models.FileField(upload_to="video/%Y/%M")
+
+    def __str__(self):
+        return f'{self.caption}' 

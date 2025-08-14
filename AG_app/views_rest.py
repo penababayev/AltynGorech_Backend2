@@ -100,6 +100,16 @@ def news_list(request):
         return Response(serializer.data)
     return Response(status=status.HTTP_400_BAD_REQUEST)
 
+# @api_view(['DELETE'])
+# def delete_image(request, pk):
+#     try:
+#         obj = News.objects.get(pk=pk)
+#     except News.DoesNotExist:
+#         return Response (status=status.HTTP_404_NOT_FOUND)
+#     if request.method == 'DELETE':
+#         obj.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 #Activity
 @api_view(['GET'])
@@ -109,6 +119,8 @@ def activity_list(request):
         serializer = ActivitySerializer(obj, many=True)
         return Response(serializer.data)
     return Response(status=status.HTTP_400_BAD_REQUEST)
+
     
+#Videos
 
 

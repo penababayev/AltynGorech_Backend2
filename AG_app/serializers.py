@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Teachers, ExamEvents, ExamVenues, News, Activity, Video, Adress, Course, CourseItem
+from .models import *
 
 class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,4 +45,9 @@ class CourseSerizalizer(serializers.ModelSerializer):
 class CourseItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseItem
+        fields = '__all__'
+
+class CertificateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certificate
         fields = '__all__'

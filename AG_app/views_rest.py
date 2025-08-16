@@ -1,5 +1,5 @@
-from .models import Teachers, ExamEvents, News, Activity, Video, Adress, Course, CourseItem
-from .serializers import TeacherSerializer, ExamEventSerializer, NewsSerializer, ActivitySerializer, VideoSerializer, AdressSerializer, CourseItemSerializer
+from .models import *
+from .serializers import *
 from django.http import HttpResponse, JsonResponse
 from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
@@ -150,3 +150,19 @@ def course_list(request, pk):
         item = obj.items.all()
         serializer = CourseItemSerializer(item, many=True)
         return Response(serializer.data)
+
+
+#Certificates
+@api_view(['GET'])
+def certificate_by_phone_list(request, phone_number):
+    try:
+        customer = Certificate.objects.get(phone_num=phone_number)
+    except Certificate.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'GET':
+        serializer = CertificateSerializer(customer)
+        return Response(serializer.data)
+
+
+    
+    

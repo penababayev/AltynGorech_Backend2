@@ -62,7 +62,7 @@ class News(models.Model):
 class Activity(models.Model):
     name = models.CharField(max_length=200)
     title = models.TextField()
-    
+
     image = models.ImageField(upload_to='activity/', blank=True, null=True)
     def __str__(self):
         return f'{self.name}'
@@ -86,7 +86,7 @@ class Adress(models.Model):
     name = models.CharField(max_length=100)
     title = models.CharField(max_length=200)
     address = models.TextField()
-    number = models.CharField(max_length=50)
+    phone_num = models.CharField(max_length=50)
 
     def __str__(self):
         return f'{self.name} {self.title}'
@@ -107,3 +107,40 @@ class CourseItem(models.Model):
 
     def __str__(self):
         return f'{self.name} {self.title}'
+
+
+#Certificates
+class Certificate(models.Model):
+    LEVEL_CHOICES = [
+        ('Beginner', 'Beginner'),
+        ('Intermediate', 'Intermediate'),
+        ('Upper', 'Upper'),
+        ('Advanced', 'Advanced'),
+    ]
+
+    COURSE_CHOICES = [
+        ('Iňlis dili', 'Iňlis dili'),
+        ('Rus dili', 'Rus dili'),
+        ('Matematika', 'Matematika'),
+        ('Kompýuter', 'Kompýuter'),
+    ]
+
+    COURSE_LOC_CHOICES = [
+        ('Merkez Şahamçasy, Mary ş.', 'Merkez Şahamçasy, Mary ş.'),
+        ('Şapak Şahamçasy, Mary ş.', 'Şapak Şahamçasy, Mary ş.'),
+        ('Miras Şahamçasy, Mary ş.', 'Miras Şahamçasy, Mary ş.'),
+        ('Ýolöten Şahamçasy, Ýolöten ş.', 'Ýolöten Şahamçasy, Ýolöten ş.'),
+    ]
+
+
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    fathers_name = models.CharField(max_length=100)
+    phone_num = models.CharField(max_length=12, default="+993") 
+    course_level = models.CharField(max_length=200, choices=LEVEL_CHOICES, default='Tapgyryny sayla')
+    course_name = models.CharField(max_length=200, choices=COURSE_CHOICES, default='Kurs adyny saýla')
+    course_location = models.CharField(max_length=200, choices=COURSE_LOC_CHOICES, default='Kurs ýeri' )
+    certificate = models.CharField(max_length=200)
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name} {self.fathers_name} {self.phone_num}'

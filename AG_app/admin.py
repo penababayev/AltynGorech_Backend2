@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Teachers, ExamEvents, News, Activity, Video, Adress, Course, CourseItem
+from .models import *
 
 # Register your models here.
 
@@ -11,3 +11,4 @@ admin.site.register(Video)
 admin.site.register(Adress)
 admin.site.register(Course)
 admin.site.register(CourseItem)
+admin.site.register(Certificate)

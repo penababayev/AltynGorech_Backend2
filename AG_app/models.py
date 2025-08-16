@@ -62,9 +62,13 @@ class News(models.Model):
 class Activity(models.Model):
     name = models.CharField(max_length=200)
     title = models.TextField()
-    photo = models.ImageField(upload_to='activity/', blank=True, null=True)
+    image = models.ImageField(upload_to='activity/', blank=True, null=True)
     def __str__(self):
         return f'{self.name}'
+    
+    def delete(self):
+        self.image.delete()
+        super().delete()
 
 
 #Videos
@@ -73,4 +77,32 @@ class Video(models.Model):
     video = models.FileField(upload_to="video/%Y/%M")
 
     def __str__(self):
-        return f'{self.caption}' 
+        return f'{self.caption}'
+
+
+#Adress/Location
+class Adress(models.Model):
+    name = models.CharField(max_length=100)
+    title = models.CharField(max_length=200)
+    address = models.TextField()
+    number = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f'{self.name} {self.title}'
+
+#Courses
+class Course(models.Model):
+    name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return f'{self.name}'
+
+#Course Items
+class CourseItem(models.Model):
+    item = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='items' )
+    name = models.CharField(max_length=200)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+
+    def __str__(self):
+        return f'{self.name} {self.title}'

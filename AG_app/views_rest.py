@@ -1,5 +1,5 @@
-from .models import Teachers, ExamEvents, News, Activity
-from .serializers import TeacherSerializer, ExamEventSerializer, NewsSerializer, ActivitySerializer
+from .models import Teachers, ExamEvents, News, Activity, Video, Adress, Course, CourseItem
+from .serializers import TeacherSerializer, ExamEventSerializer, NewsSerializer, ActivitySerializer, VideoSerializer, AdressSerializer, CourseItemSerializer
 from django.http import HttpResponse, JsonResponse
 from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
@@ -122,5 +122,31 @@ def activity_list(request):
 
     
 #Videos
+@api_view(['GET'])
+def video_list(request):
+    if request.method == 'GET':
+        obj = Video.objects.all()
+        serializer = VideoSerializer(obj, many=True)
+        return Response(serializer.data)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
 
+#Adress
+@api_view(['GET'])
+def adress_list(request):
+    if request.method == 'GET':
+        obj = Adress.objects.all()
+        serializer = AdressSerializer(obj, many=True)
+        return Response(serializer.data)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
 
+#Course Items
+@api_view(['GET'])
+def course_list(request, pk):
+    try:
+        obj = Course.objects.get(pk=pk)
+    except Course.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'GET':
+        item = obj.items.all()
+        serializer = CourseItemSerializer(item, many=True)
+        return Response(serializer.data)

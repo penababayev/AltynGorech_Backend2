@@ -37,17 +37,22 @@ class AdressSerializer(serializers.ModelSerializer):
         model = Adress
         fields = '__all__'
 
-class CourseSerizalizer(serializers.ModelSerializer):
-    class Meta:
-        model = Course
-        fields = '__all__'
+# # class CourseSerizalizer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = Course
+# #         fields = '__all__'
 
-class CourseItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CourseItem
-        fields = '__all__'
+# # class CourseItemSerializer(serializers.ModelSerializer):
+# #     class Meta:
+# #         model = CourseItem
+# #         fields = '__all__'
 
-class CertificateSerializer(serializers.ModelSerializer):
+# class CertificateSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Certificate
+#         fields = '__all__'
+
+class StudentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Certificate
+        model = Student
         fields = '__all__'

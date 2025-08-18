@@ -8,7 +8,7 @@ urlpatterns = [
     path('activity/', activity_list),
     path('video/', video_list),
     path('adress/', adress_list),
-    path('courses/list/<int:pk>', course_list),
+    # path('courses/list/<int:pk>', course_list),
     path('certificates/<str:phone_number>', certificate_by_phone_list),
 
 ]

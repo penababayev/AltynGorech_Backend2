@@ -140,28 +140,43 @@ def adress_list(request):
     return Response(status=status.HTTP_400_BAD_REQUEST)
 
 #Course Items
-@api_view(['GET'])
-def course_list(request, pk):
-    try:
-        obj = Course.objects.get(pk=pk)
-    except Course.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    if request.method == 'GET':
-        item = obj.items.all()
-        serializer = CourseItemSerializer(item, many=True)
-        return Response(serializer.data)
+# @api_view(['GET'])
+# def course_list(request, pk):
+#     try:
+#         obj = Course.objects.get(pk=pk)
+#     except Course.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
+#     if request.method == 'GET':
+#         item = obj.items.all()
+#         serializer = CourseItemSerializer(item, many=True)
+#         return Response(serializer.data)
+
+
+#Certificates
+# @api_view(['GET'])
+# def certificate_by_phone_list(request, phone_number):
+#     try:
+#         customer = Certificate.objects.get(phone_num=phone_number)
+#     except Certificate.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
+#     if request.method == 'GET':
+#         serializer = CertificateSerializer(customer)
+#         return Response(serializer.data)
 
 
 #Certificates
 @api_view(['GET'])
 def certificate_by_phone_list(request, phone_number):
     try:
-        customer = Certificate.objects.get(phone_num=phone_number)
-    except Certificate.DoesNotExist:
+        customer = Student.objects.get(phone=phone_number)
+    except Student.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     if request.method == 'GET':
-        serializer = CertificateSerializer(customer)
+        serializer = StudentSerializer(customer)
         return Response(serializer.data)
+
+
+#Profesyonel bir dershane veritabani
 
 
     

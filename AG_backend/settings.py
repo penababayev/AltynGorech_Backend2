@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'AG_app',
     'rest_framework',
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +140,36 @@ MEDIA_URL = '/media/' # its for showing images
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+
+
+
+
+
+AUTH_USER_MODEL = "auth.User"  # Varsayılan User kullanılacak
+# DRF basit ayar
+
+
+
+
+
+# --- API yapyar
+
+# REST_FRAMEWORK = {
+#     "DEFAULT_AUTHENTICATION_CLASSES": [
+#         "rest_framework.authentication.SessionAuthentication",
+#         "rest_framework.authentication.BasicAuthentication",
+#     ],
+#     "DEFAULT_PERMISSION_CLASSES": [
+#         "rest_framework.permissions.IsAuthenticated",
+#     ],
+# }
+
+
+
+
+
+SCHOOL_CODE = "AGOM"

@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from .models import *
 
-class TeacherSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Teachers
-        fields = ['teacher_id', 'first_name', 'last_name', 'subject', 'experience_years', 'credentials', 'bio', 'photo']
+# class TeacherSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Teachers
+#         fields = ['teacher_id', 'first_name', 'last_name', 'subject', 'experience_years', 'credentials', 'bio', 'photo']
 
 
 class ExamVenueSerializer(serializers.ModelSerializer):
@@ -37,10 +37,10 @@ class AdressSerializer(serializers.ModelSerializer):
         model = Adress
         fields = '__all__'
 
-# # class CourseSerizalizer(serializers.ModelSerializer):
-# #     class Meta:
-# #         model = Course
-# #         fields = '__all__'
+class CourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = '__all__'
 
 # # class CourseItemSerializer(serializers.ModelSerializer):
 # #     class Meta:
@@ -53,6 +53,14 @@ class AdressSerializer(serializers.ModelSerializer):
 #         fields = '__all__'
 
 class StudentSerializer(serializers.ModelSerializer):
+    branch_name  = CourseSerializer(read_only=True)
     class Meta:
         model = Student
+        fields = '__all__'
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    course = CourseSerializer(read_only=True)
+    class Meta:
+        model = Enrollment
         fields = '__all__'

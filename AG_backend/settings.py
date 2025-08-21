@@ -38,9 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'AG_app',
     'rest_framework',
     'import_export',
+    'core',
+    'accounting',
+    'courses',
+    'staffs',
+    'students'
+    
 ]
 
 MIDDLEWARE = [

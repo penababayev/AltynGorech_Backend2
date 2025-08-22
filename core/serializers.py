@@ -37,10 +37,7 @@
 #         model = Adress
 #         fields = '__all__'
 
-# class CourseSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Course
-#         fields = '__all__'
+
 
 # # # class CourseItemSerializer(serializers.ModelSerializer):
 # # #     class Meta:
@@ -52,15 +49,4 @@
 # #         model = Certificate
 # #         fields = '__all__'
 
-# class StudentSerializer(serializers.ModelSerializer):
-#     branch_name  = CourseSerializer(read_only=True)
-#     class Meta:
-#         model = Student
-#         fields = '__all__'
 
-
-# class EnrollmentSerializer(serializers.ModelSerializer):
-#     course = CourseSerializer(read_only=True)
-#     class Meta:
-#         model = Enrollment
-#         fields = '__all__'

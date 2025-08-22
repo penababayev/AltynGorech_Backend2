@@ -170,17 +170,17 @@ class Profile(models.Model):
 
 
 
-class Announcement(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="announcements")
-    title = models.CharField(max_length=150)
-    body = models.TextField()
-    visible_to = models.CharField(max_length=30, default="ALL")  # ALL/TEACHERS/STUDENTS/PARENTS
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="announcements_created")
-    created_at = models.DateTimeField(auto_now_add=True)
-    publish_until = models.DateTimeField(null=True, blank=True)
+# class Announcement(models.Model):
+#     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="announcements")
+#     title = models.CharField(max_length=150)
+#     body = models.TextField()
+#     visible_to = models.CharField(max_length=30, default="ALL")  # ALL/TEACHERS/STUDENTS/PARENTS
+#     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="announcements_created")
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     publish_until = models.DateTimeField(null=True, blank=True)
 
-    def __str__(self):
-        return self.title
+#     def __str__(self):
+#         return self.title
 
 
 

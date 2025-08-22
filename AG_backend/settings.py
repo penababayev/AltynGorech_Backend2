@@ -40,11 +40,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'import_export',
+    'django_filters',
     'core',
     'accounting',
     'courses',
     'staffs',
-    'students'
+    'students',
+    'website'
     
 ]
 
@@ -163,7 +165,7 @@ AUTH_USER_MODEL = "auth.User"  # Varsayılan User kullanılacak
 
 # --- API yapyar
 
-# REST_FRAMEWORK = {
+REST_FRAMEWORK = {
 #     "DEFAULT_AUTHENTICATION_CLASSES": [
 #         "rest_framework.authentication.SessionAuthentication",
 #         "rest_framework.authentication.BasicAuthentication",
@@ -171,7 +173,12 @@ AUTH_USER_MODEL = "auth.User"  # Varsayılan User kullanılacak
 #     "DEFAULT_PERMISSION_CLASSES": [
 #         "rest_framework.permissions.IsAuthenticated",
 #     ],
-# }
+        'DEFAULT_FILTER_BACKENDS': [
+                'django_filters.rest_framework.DjangoFilterBackend',  # filtreleme
+                'rest_framework.filters.SearchFilter',                # (zaten kullanıyorsun)
+                'rest_framework.filters.OrderingFilter',
+        ],
+}
 
 
 

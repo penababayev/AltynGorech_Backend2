@@ -27,6 +27,6 @@ class ProfileAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "user__first_name", "user__last_name")
 
 
-admin.site.register(models.Announcement)
+# admin.site.register(models.Announcement)
 admin.site.register(models.Lead)
 admin.site.register(models.Application)

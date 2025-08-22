@@ -9,6 +9,6 @@ urlpatterns = [
     # path('video/', video_list),
     # path('adress/', adress_list),
     # path('courses/list/<int:pk>', course_list),
-    # path("students/lookup", StudentLookupByPhone.as_view(), name="student-lookup-by-phone"),
+    
 
 ]

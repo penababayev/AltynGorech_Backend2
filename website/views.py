@@ -12,6 +12,13 @@ from students.serializers import *
 import re
 from rest_framework.views import APIView
 
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated  # istersen
+from django_filters.rest_framework import DjangoFilterBackend
+
+# Create your views here.
+
+
 
 
 class TeacherProfileViewSet(viewsets.ModelViewSet):
@@ -182,3 +189,28 @@ class StudentLookupByPhone(APIView):
             status=status.HTTP_200_OK,
         )
 
+
+
+
+
+
+
+
+
+class AssessmentResultViewSet(viewsets.ModelViewSet):
+    queryset = AssessmentResult.objects.select_related(
+        "assessment", "student", "graded_by"
+    ).all()
+    serializer_class = AssessmentResultSerializer
+    permission_classes = [IsAuthenticated]  # projene göre güncelle
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        "assessment": ["exact"],
+        "student": ["exact"],
+        "status": ["exact"],
+        "passed": ["exact"],
+    }
+    search_fields = ["assessment__title", "assessment__code", "notes", "student__first_name", "student__last_name"]
+    ordering_fields = ["created_at", "updated_at", "percent", "attempt"]
+    ordering = ["-created_at"]

@@ -2,8 +2,7 @@ from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils import timezone
-# from staffs.models import *
-# from students.models import *
+from django.core.exceptions import ValidationError
 from django.db import models, transaction, IntegrityError
 from django.core.validators import MinValueValidator
 
@@ -284,29 +283,224 @@ class Material(models.Model):
 
 # --- Ölçme & Değerlendirme ---
 
+
+
+ASSESSMENT_STATUS = [
+    ("DRAFT", "Taslak"),
+    ("PUBLISHED", "Yayında"),
+    ("CLOSED", "Kapandı"),
+    ("ARCHIVED", "Arşiv"),
+]
+
 class Assessment(models.Model):
-    TYPE_CHOICES = [("EXAM", "Exam"), ("QUIZ", "Quiz"), ("ASSIGNMENT", "Assignment")]
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="assessments")
-    title = models.CharField(max_length=150)
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="EXAM")
-    date = models.DateField()
-    max_score = models.DecimalField(max_digits=6, decimal_places=2, default=100)
+    # Bağlantılar (app label'leri kendi projenize göre bırakın/değiştirin)
+    organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="assessments")
+    branch       = models.ForeignKey("core.Branch", on_delete=models.SET_NULL, null=True, blank=True, related_name="assessments")
+    course       = models.ForeignKey("courses.Course", on_delete=models.SET_NULL, null=True, blank=True, related_name="assessments")
 
-    def __str__(self):
-        return f"{self.course} - {self.title}"
+    # Temel bilgiler
+    title       = models.CharField("Başlık", max_length=180)
+    code        = models.CharField("Kod", max_length=40, db_index=True, help_text="Kurum içinde benzersiz olmalı.")
+    description = models.TextField("Açıklama", blank=True)
 
+    status      = models.CharField("Durum", max_length=12, choices=ASSESSMENT_STATUS, default="DRAFT", db_index=True)
+    start_at    = models.DateTimeField("Başlangıç", null=True, blank=True)
+    end_at      = models.DateTimeField("Bitiş", null=True, blank=True)
+    duration_min= models.PositiveIntegerField("Süre (dk)", null=True, blank=True)
+    capacity    = models.PositiveIntegerField("Kontenjan", null=True, blank=True)
 
-class AssessmentResult(models.Model):
-    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE, related_name="results")
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="assessment_results")
-    score = models.DecimalField(max_digits=6, decimal_places=2)
+    # Sınav yeri (fiziksel / online)
+    is_online     = models.BooleanField("Online Sınav", default=False)
+    meeting_url   = models.URLField("Toplantı/Sınav Linki", blank=True)
+    venue_name    = models.CharField("Mekân Adı", max_length=160, blank=True)
+    venue_address = models.TextField("Adres", blank=True)
+    venue_room    = models.CharField("Salon/No", max_length=80, blank=True)
+    venue_city    = models.CharField("Şehir", max_length=80, blank=True)
+    venue_lat     = models.DecimalField("Enlem", max_digits=9, decimal_places=6, null=True, blank=True)
+    venue_lng     = models.DecimalField("Boylam", max_digits=9, decimal_places=6, null=True, blank=True)
+    map_embed_url = models.URLField("Harita Embed URL", blank=True)
+
+    # Gözetmen(ler) – istersen kullan
+    proctors = models.ManyToManyField("staffs.Teacher", blank=True, related_name="proctored_assessments", verbose_name="Gözetmenler")
+
+    # Takip
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("assessment", "student")
-        indexes = [models.Index(fields=["assessment", "student"])]
+        verbose_name = "Synag"
+        verbose_name_plural = "Synaglar"
+        unique_together = [("organization", "code")]
+        ordering = ["-start_at", "-created_at"]
+        indexes = [
+            models.Index(fields=["organization", "branch", "status"]),
+            models.Index(fields=["course", "start_at"]),
+        ]
 
     def __str__(self):
-        return f"{self.assessment} - {self.student} : {self.score}"
+        return f"{self.title} ({self.code})"
+
+    # Durum yardımcıları
+    @property
+    def is_open_now(self):
+        now = timezone.now()
+        if self.status != "PUBLISHED":
+            return False
+        if self.start_at and now < self.start_at:
+            return False
+        if self.end_at and now >= self.end_at:
+            return False
+        return True
+
+    # Basit validasyonlar
+    def clean(self):
+        if self.start_at and self.end_at and self.end_at <= self.start_at:
+            raise ValidationError({"end_at": "Bitiş, başlangıçtan sonra olmalı."})
+
+        # Yer zorunlulukları
+        if self.is_online:
+            if not self.meeting_url:
+                raise ValidationError({"meeting_url": "Online sınavlar için bir bağlantı (meeting_url) belirtin."})
+        else:
+            if not (self.venue_name or self.venue_address):
+                raise ValidationError("Fiziksel sınavlarda en azından bir mekân adı veya adres girin.")
+
+
+
+
+
+ASSESSMENT_RESULT_STATUS = [
+    ("REGISTERED", "Kayıtlı"),
+    ("STARTED",    "Başladı"),
+    ("SUBMITTED",  "Teslim Edildi"),
+    ("GRADED",     "Notlandı"),
+    ("ABSENT",     "Gelmedi"),
+    ("CANCELLED",  "İptal"),
+]
+
+class AssessmentResult(models.Model):
+    # Bağlantılar
+    assessment = models.ForeignKey(
+        Assessment, on_delete=models.CASCADE, related_name="results"
+    )
+    student = models.ForeignKey(
+        "students.Student", on_delete=models.CASCADE, related_name="assessment_results"
+    )
+    graded_by = models.ForeignKey(
+        "staffs.Teacher", on_delete=models.SET_NULL, null=True, blank=True, related_name="graded_results"
+    )
+
+    # Deneme & durum
+    attempt = models.PositiveIntegerField(default=1, help_text="Aynı sınav için kaçıncı deneme.")
+    status  = models.CharField(max_length=12, choices=ASSESSMENT_RESULT_STATUS, default="REGISTERED", db_index=True)
+
+    # Zamanlar
+    registered_at = models.DateTimeField(auto_now_add=True)
+    started_at    = models.DateTimeField(null=True, blank=True)
+    submitted_at  = models.DateTimeField(null=True, blank=True)
+    graded_at     = models.DateTimeField(null=True, blank=True)
+
+    # Puanlama
+    raw_score  = models.DecimalField("Ham Puan", max_digits=7, decimal_places=2, null=True, blank=True)
+    max_score  = models.DecimalField("Maksimum Puan", max_digits=7, decimal_places=2, null=True, blank=True)
+    percent    = models.DecimalField("Yüzde", max_digits=6, decimal_places=2, null=True, blank=True, help_text="Otomatik hesaplanır.")
+    pass_mark  = models.DecimalField("Geçme Yüzdesi", max_digits=5, decimal_places=2, default=50.00, help_text="% cinsinden")
+    passed     = models.BooleanField("Geçti", default=False)
+
+    # Devamsızlık / notlar
+    is_absent  = models.BooleanField("Devamsız", default=False)
+    notes      = models.TextField("Değerlendirici Notu", blank=True)
+
+    # İzleme
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Synag Netijesi"
+        verbose_name_plural = "Synag Netijeleri"
+        # Aynı assessment + student + attempt kombinasyonu tekil olsun
+        unique_together = [("assessment", "student", "attempt")]
+        indexes = [
+            models.Index(fields=["assessment", "student"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["passed"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.student} - {self.assessment} (Attempt {self.attempt})"
+
+    # Yardımcılar
+    @property
+    def duration_minutes(self):
+        """STARTED → SUBMITTED arası dakika (varsa)."""
+        if self.started_at and self.submitted_at:
+            delta = self.submitted_at - self.started_at
+            return max(0, int(delta.total_seconds() // 60))
+        return None
+
+    def clean(self):
+        # ABSENT ise puanlanamaz
+        if self.is_absent and (self.raw_score is not None or self.submitted_at):
+            raise ValidationError("Devamsız (ABSENT) sonuç için puan/teslim zamanı olmamalı.")
+
+        # Zaman sırası
+        if self.started_at and self.submitted_at and self.submitted_at < self.started_at:
+            raise ValidationError({"submitted_at": "Teslim zamanı, başlama zamanından önce olamaz."})
+
+        # Puan mantığı
+        if self.raw_score is not None and (self.max_score is None or self.max_score <= 0):
+            raise ValidationError({"max_score": "Ham puan varsa maksimum puan > 0 olmalı."})
+        if self.raw_score is not None and self.max_score is not None:
+            if self.raw_score < 0 or self.raw_score > self.max_score:
+                raise ValidationError({"raw_score": "Ham puan 0 ile maksimum puan arasında olmalı."})
+
+        # Assessment penceresi (varsa) dışında başlatma/teslim etme uyarısı
+        if self.started_at:
+            a = self.assessment
+            if a.start_at and self.started_at < a.start_at:
+                raise ValidationError({"started_at": "Sınav başlangıç saatinden önce başlatılamaz."})
+            if a.end_at and self.started_at >= a.end_at:
+                raise ValidationError({"started_at": "Sınav bitiş saatinden sonra başlatılamaz."})
+        if self.submitted_at:
+            a = self.assessment
+            if a.end_at and self.submitted_at > a.end_at:
+                # İstersen burada uyarı yerine hata da verebilirsin
+                pass
+
+        # Kapasite kontrolünü kayıt (REGISTERED) sırasında yapmak istersen:
+        # if self._state.adding and self.status == "REGISTERED":
+        #     reg_count = AssessmentResult.objects.filter(assessment=self.assessment, status__in=["REGISTERED","STARTED","SUBMITTED","GRADED"]).count()
+        #     if self.assessment.capacity and reg_count >= self.assessment.capacity:
+        #         raise ValidationError("Bu sınav için kontenjan dolu.")
+
+    def _compute_scores(self):
+        """raw_score + max_score → percent ve passed hesapla."""
+        if self.raw_score is not None and self.max_score:
+            pct = (float(self.raw_score) / float(self.max_score)) * 100.0
+            self.percent = round(pct, 2)
+            self.passed = self.percent >= float(self.pass_mark)
+        else:
+            # Puan yoksa yüzde/passed reset
+            self.percent = None
+            if self.is_absent:
+                self.passed = False
+
+    def save(self, *args, **kwargs):
+        # Durum otomasyonu
+        if self.is_absent:
+            self.status = "ABSENT"
+
+        # Puan/Geçti hesapla
+        self._compute_scores()
+
+        # GRADED durumuna geçişte graded_at set et
+        if self.status == "GRADED" and self.graded_at is None:
+            self.graded_at = timezone.now()
+
+        # STARTED yokken SUBMITTED geldiyse (ör. optikten içeri alındı), started_at tahmini vermiyoruz; isteğe bağlı eklenebilir
+        super().save(*args, **kwargs)
+
 
 
 # --- Ödev / Materyal ---

@@ -1,10 +1,8 @@
 from django.contrib import admin
-from import_export import resources, fields
-from import_export.widgets import DateWidget, Widget
-from import_export.admin import ImportExportModelAdmin
 from django.db.models import Count, Q
 from django.utils import timezone
 from . import models
+from .models import Material, MaterialFile, Tag
 
 
 # Register your models here.
@@ -148,4 +146,51 @@ class AssessmentResultAdmin(admin.ModelAdmin):
 
 admin.site.register(models.Assignment)
 admin.site.register(models.Submission)
-admin.site.register(models.Material)
+
+
+
+
+
+
+
+#----Materials -----
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display  = ("name",)
+    search_fields = ("name",)
+
+
+class MaterialFileInline(admin.TabularInline):
+    model = MaterialFile
+    extra = 0
+
+
+@admin.register(Material)
+class MaterialAdmin(admin.ModelAdmin):
+    list_display = (
+        "title", "course", "material_type", "status", "visibility",
+        "published_now", "order", "created_at",
+    )
+    list_filter = ("status", "visibility", "material_type", "course", "branch", "owner", "tags")
+    search_fields = ("title", "code", "description", "link_url", "video_url")
+    autocomplete_fields = ("organization", "branch", "course", "owner", "tags")
+    list_editable = ("status", "visibility", "order")
+    readonly_fields = ("view_count", "download_count", "created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("organization", "branch", "course", "owner", "title", "code", "description")}),
+        ("Yayın", {"fields": ("status", "visibility", "publish_start_at", "publish_end_at", "order")}),
+        ("Tür & İçerik", {"fields": ("material_type", "file", "link_url", "video_url", "embed_html", "html_content")}),
+        ("Etiketler", {"fields": ("tags",)}),
+        ("Sayaçlar", {"fields": ("view_count", "download_count")}),
+        ("Zaman", {"fields": ("created_at", "updated_at")}),
+    )
+    inlines = [MaterialFileInline]
+    date_hierarchy = "created_at"
+    ordering = ("order", "-publish_start_at", "-created_at")
+
+    # Boolean ikonlu sütun
+    def published_now(self, obj):
+        return obj.is_published_now()
+    published_now.boolean = True
+    published_now.short_description = "Şimdi yayında"

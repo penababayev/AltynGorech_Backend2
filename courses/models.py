@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import models, transaction, IntegrityError
 from django.core.validators import MinValueValidator
+from django.core.validators import FileExtensionValidator
 
 
 
@@ -269,14 +270,150 @@ class Attendance(models.Model):
 
 
 
-class Material(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="materials")
-    title = models.CharField(max_length=150)
-    file = models.FileField(upload_to="materials/%Y/%m/")
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+MATERIAL_STATUS = [
+    ("DRAFT", "Taslak"),
+    ("PUBLISHED", "Yayında"),
+    ("ARCHIVED", "Arşiv"),
+]
+
+MATERIAL_VISIBILITY = [
+    ("PUBLIC", "Herkes"),
+    ("ENROLLED", "Kayıtlı Öğrenciler"),
+    ("STAFF", "Sadece Personel"),
+]
+
+MATERIAL_TYPE = [
+    ("FILE", "Dosya"),
+    ("LINK", "Bağlantı"),
+    ("VIDEO", "Video (YouTube/Vimeo)"),
+    ("EMBED", "Gömülü (iframe/HTML)"),
+    ("HTML", "Serbest Metin/HTML"),
+]
+
+
+def material_upload_to(instance, filename):
+    """/materials/<org>/<course>/<yyyy>/<mm>/<filename>"""
+    y = timezone.now().strftime("%Y")
+    m = timezone.now().strftime("%m")
+    org = instance.organization_id or "org"
+    course = instance.course_id or "course"
+    return f"materials/{org}/{course}/{y}/{m}/{filename}"
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=48, unique=True, db_index=True)
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
-        return self.title
+        return self.name
+
+
+class Material(models.Model):
+    # İlişkiler
+    organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="materials")
+    branch       = models.ForeignKey("core.Branch", on_delete=models.SET_NULL, null=True, blank=True, related_name="materials")
+    course       = models.ForeignKey("courses.Course", on_delete=models.CASCADE, related_name="materials")
+    owner        = models.ForeignKey("staffs.Teacher", on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name="owned_materials", verbose_name="Yükleyen")
+
+    # İçerik
+    title        = models.CharField("Başlık", max_length=180)
+    code         = models.CharField("Kod", max_length=40, db_index=True, help_text="Kurum içinde benzersiz olmalı.")
+    description  = models.TextField("Açıklama", blank=True)
+
+    status       = models.CharField("Durum", max_length=10, choices=MATERIAL_STATUS, default="DRAFT", db_index=True)
+    visibility   = models.CharField("Görünürlük", max_length=10, choices=MATERIAL_VISIBILITY, default="ENROLLED", db_index=True)
+    material_type= models.CharField("Tür", max_length=8, choices=MATERIAL_TYPE, default="FILE", db_index=True)
+
+    # Yayın penceresi
+    publish_start_at = models.DateTimeField("Yayın Başlangıcı", null=True, blank=True)
+    publish_end_at   = models.DateTimeField("Yayın Bitişi", null=True, blank=True)
+
+    # Tür bazlı içerik alanları
+    file = models.FileField(
+        "Dosya", upload_to=material_upload_to, null=True, blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=[
+            "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx",
+            "zip", "rar", "jpg", "jpeg", "png", "mp4", "mp3"
+        ])]
+    )
+    link_url     = models.URLField("Bağlantı URL", blank=True)
+    video_url    = models.URLField("Video URL", blank=True, help_text="YouTube/Vimeo gibi bir link.")
+    embed_html   = models.TextField("Embed HTML", blank=True)
+    html_content = models.TextField("Serbest Metin/HTML", blank=True)
+
+    # Ek
+    order        = models.PositiveIntegerField("Sıra", default=0, db_index=True)
+    tags         = models.ManyToManyField(Tag, blank=True, related_name="materials")
+
+    # Sayaçlar
+    view_count     = models.PositiveIntegerField(default=0)
+    download_count = models.PositiveIntegerField(default=0)
+
+    # İzleme
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Materyal"
+        verbose_name_plural = "Materyaller"
+        unique_together = [("organization", "course", "code")]
+        ordering = ["order", "-publish_start_at", "-created_at"]
+        indexes = [
+            models.Index(fields=["organization", "course", "status"]),
+            models.Index(fields=["visibility", "material_type"]),
+            models.Index(fields=["order"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} - {self.course}"
+
+    def is_published_now(self) -> bool:
+        """Şu an yayında mı? (admin listesinde kullanılacak)"""
+        if self.status != "PUBLISHED":
+            return False
+        now = timezone.now()
+        if self.publish_start_at and now < self.publish_start_at:
+            return False
+        if self.publish_end_at and now >= self.publish_end_at:
+            return False
+        return True
+
+    def clean(self):
+        # Yayın zamanı mantığı
+        if self.publish_start_at and self.publish_end_at and self.publish_end_at <= self.publish_start_at:
+            raise ValidationError({"publish_end_at": "Yayın bitişi, başlangıçtan sonra olmalı."})
+
+        # Tür bazlı zorunlu alanlar
+        t = self.material_type
+        if t == "FILE" and not self.file:
+            raise ValidationError({"file": "Dosya materyali için dosya yükleyin."})
+        if t == "LINK" and not self.link_url:
+            raise ValidationError({"link_url": "Link materyali için URL girin."})
+        if t == "VIDEO" and not self.video_url:
+            raise ValidationError({"video_url": "Video materyali için URL girin."})
+        if t == "EMBED" and not self.embed_html:
+            raise ValidationError({"embed_html": "Embed materyali için HTML girin."})
+        if t == "HTML" and not self.html_content:
+            raise ValidationError({"html_content": "HTML materyali için içerik girin."})
+
+
+class MaterialFile(models.Model):
+    """Materyale bağlı ek dosyalar (opsiyonel)."""
+    material   = models.ForeignKey(Material, on_delete=models.CASCADE, related_name="attachments")
+    file       = models.FileField(upload_to=material_upload_to)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.material.title} - {self.file.name}"
+
 
 
 

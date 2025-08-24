@@ -58,7 +58,16 @@ class CourseAdmin(admin.ModelAdmin):
     is_full_flag.short_description = "Dolu mu?"
 
 
-admin.site.register(models.Room)
+@admin.register(models.Room)
+class RoomAdmin(admin.ModelAdmin):
+    list_display  = ("branch", "name", "code", "capacity", "is_active")
+    list_filter   = ("branch", "is_active")
+    search_fields = ("name", "code", "building", "floor")
+    ordering      = ("branch", "name")
+    readonly_fields = ("created_at", "updated_at")
+
+
+
 admin.site.register(models.ClassSession)
 admin.site.register(models.Enrollment)
 admin.site.register(models.Attendance)

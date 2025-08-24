@@ -26,5 +26,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('i18n/', set_language, name='set_language'),
     path('', include('website.urls')),
+    path('', include('placement.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) #for showing images

@@ -6,6 +6,10 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction, IntegrityError
 from django.core.validators import MinValueValidator
 from django.core.validators import FileExtensionValidator
+from django.db import models, transaction, IntegrityError
+from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 
 
@@ -212,18 +216,95 @@ class Enrollment(models.Model):
         return f"{self.student} -> {self.course}"
 
 
+#---Room---
+# courses/models.py  (veya uygun app)
+
 
 class Room(models.Model):
-    branch = models.ForeignKey("core.Branch", on_delete=models.CASCADE, related_name="rooms")
-    name = models.CharField(max_length=50)
-    capacity = models.PositiveIntegerField(default=20)
+    branch    = models.ForeignKey("core.Branch", on_delete=models.CASCADE,
+                                  related_name="rooms", verbose_name="Şube")
+    code      = models.CharField("Oda Kodu", max_length=32, blank=True, null=True, db_index=True)
+    name      = models.CharField("Oda Adı", max_length=50)
+    capacity  = models.PositiveIntegerField("Kapasite", default=20, validators=[MinValueValidator(1)])
+    building  = models.CharField("Bina", max_length=60, blank=True)
+    floor     = models.CharField("Kat", max_length=20, blank=True)
+    features  = models.JSONField("Özellikler", default=list, blank=True)  # ["projector","whiteboard","ac"]
+    is_active = models.BooleanField("Aktif", default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("branch", "name")
-        indexes = [models.Index(fields=["branch", "name"])]
+        verbose_name = "Synp/Otag"
+        verbose_name_plural = "Synplar/Otaglar"
+        ordering = ["branch", "name"]
+        indexes = [
+            models.Index(fields=["branch", "name"]),
+            models.Index(fields=["branch", "is_active"]),
+        ]
+        unique_together = (("branch", "name"),)
+        constraints = [
+            # code opsiyonel; doluysa branch içinde benzersiz
+            models.UniqueConstraint(
+                fields=["branch", "code"],
+                name="uniq_room_code_per_branch",
+                condition=~Q(code=None)
+            ),
+        ]
 
     def __str__(self):
         return f"{self.branch} / {self.name}"
+
+    # Basit doğrulama
+    def clean(self):
+        if self.capacity and self.capacity < 1:
+            raise ValidationError({"capacity": "Kapasite 1 veya daha büyük olmalı."})
+
+    # Otomatik kod üretimi: R-<BRANCHCODE|ID>-NN
+    def _base_code(self) -> str:
+        br_code = getattr(self.branch, "code", None)  # Branch'te code alanın varsa
+        return f"R-{br_code}" if br_code else f"R-{self.branch_id}"
+
+    def save(self, *args, **kwargs):
+        # boş stringleri None yap
+        if self.code == "":
+            self.code = None
+
+        if not self.code:
+            base = self._base_code()
+            seq = 1
+            while True:
+                candidate = f"{base}-{seq:02d}"
+                # race condition'a karşı atomic blok
+                try:
+                    with transaction.atomic():
+                        # aynı branch + candidate var mı?
+                        if Room.objects.select_for_update().filter(branch=self.branch, code=candidate).exists():
+                            seq += 1
+                            if seq > 9999:
+                                raise IntegrityError("Room code sequence overflow")
+                            continue
+                        self.code = candidate
+                        break
+                except IntegrityError:
+                    seq += 1
+                    if seq > 9999:
+                        raise
+
+        return super().save(*args, **kwargs)
+
+    # Müsaitlik kontrolü (ClassSession ile)
+    def is_available(self, date, start_time, end_time, exclude_session_id=None) -> bool:
+        """
+        Aynı odada aynı tarih & zaman aralığında çakışma var mı?
+        Kullanım: room.is_available(date, start, end)
+        """
+        qs = self.sessions.filter(date=date)
+        qs = qs.filter(Q(start_time__lt=end_time) & Q(end_time__gt=start_time))
+        if exclude_session_id:
+            qs = qs.exclude(id=exclude_session_id)
+        return not qs.exists()
+#---End Rooom ---
 
 
 

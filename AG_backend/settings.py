@@ -47,8 +47,8 @@ INSTALLED_APPS = [
     'courses',
     'staffs',
     'students',
-    'website'
-    
+    'website',
+    'placement'
 ]
 
 MIDDLEWARE = [
@@ -185,6 +185,15 @@ REST_FRAMEWORK = {
                 'rest_framework.filters.SearchFilter',                # (zaten kullanıyorsun)
                 'rest_framework.filters.OrderingFilter',
         ],
+
+        #--- Placement ucin ----
+        "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        ],
+        "DEFAULT_THROTTLE_RATES": {
+            "anon": "60/hour",  # public endpoint’ler için basit rate limit
+        },
+        # ----Placement--
 }
 
 

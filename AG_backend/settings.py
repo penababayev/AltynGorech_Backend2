@@ -26,7 +26,28 @@ SECRET_KEY = 'django-insecure-e*&zdj(2!42360&k3wz9kte)ze2koan!wn@8z#&n%)_x#xmeq3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+
+
+#Render ucin gerek
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "altyngorech-backend2.onrender.com",   # Render domainin
+    # eğer özel alan adın varsa onu da ekle: "api.senin-domainin.com",
+]
+# Render, HTTPS'i proxy üzerinden iletir:
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# --- CSRF (Django 4+) ---
+CSRF_TRUSTED_ORIGINS = [
+    "https://altyngorech-backend2.onrender.com",
+    # front-end domainlerin: (ör. Vercel / yerel)
+    "https://altyngorech-one.vercel.app",
+    "http://localhost:5173",
+]
+#--Render end--
+
+
 
 
 # Application definition
@@ -48,10 +69,12 @@ INSTALLED_APPS = [
     'staffs',
     'students',
     'website',
-    'placement'
+    'placement',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware", #render ucin
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware', #Multiple Language ucin
@@ -61,6 +84,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+
+#Render ucin
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://altyngorech-one.vercel.app",
+]
+CORS_ALLOW_CREDENTIALS = True
+#---Render end --
 
 ROOT_URLCONF = 'AG_backend.urls'
 

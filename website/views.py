@@ -102,24 +102,24 @@ class BranchWebViewSet(viewsets.ModelViewSet):
 
 def normalize_phone(raw: str) -> str:
     """
-    Basit normalize: baştaki '+' hariç tüm boşluk, tire, parantez vb. temizlenir.
-    Eğer DB'de + ülke koduyla saklıyorsan, bu fonksiyonu aynı formatı üretecek şekilde ayarla.
-    strip() → Baştaki ve sondaki boşlukları siler.
-    Örn: " +90 532 123 45 67 " → "+90 532 123 45 67"
-    if raw.startswith("+"):
-        return "+" + re.sub(r"\D", "", raw[1:])
-    raw.startswith("+") → Eğer numara + ile başlıyorsa (ör: +90...).
+    # Basit normalize: baştaki '+' hariç tüm boşluk, tire, parantez vb. temizlenir.
+    # Eğer DB'de + ülke koduyla saklıyorsan, bu fonksiyonu aynı formatı üretecek şekilde ayarla.
+    # strip() → Baştaki ve sondaki boşlukları siler.
+    # Örn: " +90 532 123 45 67 " → "+90 532 123 45 67"
+    # if raw.startswith("+"):
+    #     return "+" + re.sub(r"\D", "", raw[1:])
+    # raw.startswith("+") → Eğer numara + ile başlıyorsa (ör: +90...).
 
-    raw[1:] → İlk karakteri (+) at, geri kalan kısmı al (örn: "90 532 123 45 67").
-    re.sub(r"\D", "", raw[1:]) → Regex ile rakam olmayan her şeyi sil.
-    \D = digit olmayan karakter.
-    Boşluk, tire, parantez vs. hepsi silinir.
-    Sonuç olarak başına tekrar "+" eklenir.
-    Örn: "+90 532-123-4567" → "+905321234567"
-    return re.sub(r"\D", "", raw)
-    Eğer numara + ile başlamıyorsa → doğrudan tüm rakam olmayan karakterleri sil.
-    Örn: "0532 123 45 67" → "05321234567"
-    Örn: "0 (532) 123-45-67" → "05321234567"
+    # raw[1:] → İlk karakteri (+) at, geri kalan kısmı al (örn: "90 532 123 45 67").
+    # re.sub(r"\D", "", raw[1:]) → Regex ile rakam olmayan her şeyi sil.
+    # \D = digit olmayan karakter.
+    # Boşluk, tire, parantez vs. hepsi silinir.
+    # Sonuç olarak başına tekrar "+" eklenir.
+    # Örn: "+90 532-123-4567" → "+905321234567"
+    # return re.sub(r"\D", "", raw)
+    # Eğer numara + ile başlamıyorsa → doğrudan tüm rakam olmayan karakterleri sil.
+    # Örn: "0532 123 45 67" → "05321234567"
+    # Örn: "0 (532) 123-45-67" → "05321234567"
     """
     raw = raw.strip()
     if raw.startswith("+"):

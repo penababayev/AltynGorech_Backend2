@@ -235,7 +235,7 @@ class CourseItemViewSet(viewsets.ModelViewSet):
 # announcements/api.py
 
 
-def base_queryset():
+def announcement_base_queryset():
     return (Announcement.objects
             .select_related("branch","course")
             .prefetch_related("images","attachments"))
@@ -249,7 +249,7 @@ def announcement_website_list(request):
       ?active_only=1        ?pinned_first=1
     Sadece PUBLIC & PUBLISHED & aktif yayın penceresi (default).
     """
-    qs = base_queryset().filter(status="PUBLISHED", is_active=True, audience="PUBLIC")
+    qs = announcement_base_queryset().filter(status="PUBLISHED", is_active=True, audience="PUBLIC")
 
     active_only = request.GET.get("active_only", "1").lower() in {"1","true","yes"}
     if active_only:
@@ -280,7 +280,7 @@ def announcement_website_list(request):
 @permission_classes([AllowAny])
 def announcement_website_detail(request, pk:int):
     try:
-        obj = base_queryset().get(pk=pk, status="PUBLISHED", is_active=True, audience="PUBLIC")
+        obj = announcement_base_queryset().get(pk=pk, status="PUBLISHED", is_active=True, audience="PUBLIC")
     except Announcement.DoesNotExist:
         return Response({"detail":"Not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -297,7 +297,7 @@ def announcement_website_detail(request, pk:int):
 
 # events/api.py
 
-def base_qs():
+def event_base_qs():
     return Event.objects.select_related("branch","course").prefetch_related("images","attachments")
 
 @api_view(["GET"])
@@ -314,7 +314,8 @@ def event_website_list(request):
     Sadece PUBLIC & is_active varsayılan filtreler uygulanır.
     """
     now = timezone.now()
-    qs = base_qs().filter(is_active=True, audience="PUBLIC")
+    qs = event_base_qs().filter(status="PUBLISHED", is_active=True, audience="PUBLIC")
+
 
     # Yayın/publish ve durum
     active_only = (request.GET.get("active_only","1").lower() in {"1","true","yes"})
@@ -326,15 +327,15 @@ def event_website_list(request):
     else:
         qs = qs.filter(status__in=["PUBLISHED","SCHEDULED"])
 
-    # Zaman filtreleri
-    if request.GET.get("upcoming","1").lower() in {"1","true","yes"}:
-        qs = qs.filter(start_at__gte=now)
-    date_from = request.GET.get("from")
-    date_to   = request.GET.get("to")
-    if date_from:
-        qs = qs.filter(start_at__date__gte=date_from)
-    if date_to:
-        qs = qs.filter(start_at__date__lte=date_to)
+    # # Zaman filtreleri
+    # if request.GET.get("upcoming","1").lower() in {"1","true","yes"}:
+    #     qs = qs.filter(start_at__gte=now)
+    # date_from = request.GET.get("from")
+    # date_to   = request.GET.get("to")
+    # if date_from:
+    #     qs = qs.filter(start_at__date__gte=date_from)
+    # if date_to:
+    #     qs = qs.filter(start_at__date__lte=date_to)
 
     # Scope filtreleri
     branch = request.GET.get("branch")
@@ -364,7 +365,7 @@ def event_website_list(request):
 @permission_classes([AllowAny])
 def event_website_detail(request, pk:int):
     try:
-        obj = base_qs().get(pk=pk, is_active=True, audience="PUBLIC")
+        obj = event_base_qs().get(pk=pk, is_active=True, audience="PUBLIC")
     except Event.DoesNotExist:
         return Response({"detail":"Not found."}, status=status.HTTP_404_NOT_FOUND)
 

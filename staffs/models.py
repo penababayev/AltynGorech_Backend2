@@ -56,7 +56,7 @@ class Teacher(models.Model):
     branch   = models.ForeignKey("core.Branch", on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="teachers", verbose_name="Şube")
     subjects = models.ManyToManyField("courses.Subject", blank=True,
-                                      related_name="teachers", verbose_name="Verdiği Konular")
+                                      related_name="teachers", verbose_name="Berýän Sapaklary")
 
     # İş bilgileri
     employment_type = models.CharField("Çalışma Tipi", max_length=12,

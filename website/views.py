@@ -4,17 +4,22 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import *
 from .serializers import *
-
 from courses.models import *
 from courses.serializers import *
 from students.models import *
 from students.serializers import *
 import re
 from rest_framework.views import APIView
-
-from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated  # istersen
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.permissions import AllowAny
+from django.utils import timezone
+from django.db.models import Q
+from .models import Event
+from .serializers import EventOut
+
+
+
 
 # Create your views here.
 
@@ -101,26 +106,6 @@ class BranchWebViewSet(viewsets.ModelViewSet):
 #StudentLookupByPhone
 
 def normalize_phone(raw: str) -> str:
-    """
-    # Basit normalize: baştaki '+' hariç tüm boşluk, tire, parantez vb. temizlenir.
-    # Eğer DB'de + ülke koduyla saklıyorsan, bu fonksiyonu aynı formatı üretecek şekilde ayarla.
-    # strip() → Baştaki ve sondaki boşlukları siler.
-    # Örn: " +90 532 123 45 67 " → "+90 532 123 45 67"
-    # if raw.startswith("+"):
-    #     return "+" + re.sub(r"\D", "", raw[1:])
-    # raw.startswith("+") → Eğer numara + ile başlıyorsa (ör: +90...).
-
-    # raw[1:] → İlk karakteri (+) at, geri kalan kısmı al (örn: "90 532 123 45 67").
-    # re.sub(r"\D", "", raw[1:]) → Regex ile rakam olmayan her şeyi sil.
-    # \D = digit olmayan karakter.
-    # Boşluk, tire, parantez vs. hepsi silinir.
-    # Sonuç olarak başına tekrar "+" eklenir.
-    # Örn: "+90 532-123-4567" → "+905321234567"
-    # return re.sub(r"\D", "", raw)
-    # Eğer numara + ile başlamıyorsa → doğrudan tüm rakam olmayan karakterleri sil.
-    # Örn: "0532 123 45 67" → "05321234567"
-    # Örn: "0 (532) 123-45-67" → "05321234567"
-    """
     raw = raw.strip()
     if raw.startswith("+"):
         return "+" + re.sub(r"\D", "", raw[1:])
@@ -214,3 +199,181 @@ class AssessmentResultViewSet(viewsets.ModelViewSet):
     search_fields = ["assessment__title", "assessment__code", "notes", "student__first_name", "student__last_name"]
     ordering_fields = ["created_at", "updated_at", "percent", "attempt"]
     ordering = ["-created_at"]
+
+
+
+class CourseListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Subject.objects.all()
+    serializer_class = CourseListSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+
+
+class CourseItemViewSet(viewsets.ModelViewSet):
+    queryset = CourseItem.objects.select_related("subject")
+    serializer_class = CourseItemSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    @action(detail=True, methods=["get"], url_path="items")
+    def items(self, request, pk=None):
+        """
+        /api/courses/<pk>/items/
+        """
+        course = self.get_object()  # 404'ü DRF otomatik verir
+        qs = course.items.all().order_by("id")  # varsa sort_order ekleyebilirsin
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            ser = CourseItemSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(ser.data)
+        ser = CourseItemSerializer(qs, many=True, context={"request": request})
+        return Response(ser.data, status=status.HTTP_200_OK)
+    
+
+
+
+# announcements/api.py
+
+
+def base_queryset():
+    return (Announcement.objects
+            .select_related("branch","course")
+            .prefetch_related("images","attachments"))
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def announcement_website_list(request):
+    """
+    Public list:
+      ?branch=   ?course=   ?limit=20
+      ?active_only=1        ?pinned_first=1
+    Sadece PUBLIC & PUBLISHED & aktif yayın penceresi (default).
+    """
+    qs = base_queryset().filter(status="PUBLISHED", is_active=True, audience="PUBLIC")
+
+    active_only = request.GET.get("active_only", "1").lower() in {"1","true","yes"}
+    if active_only:
+        now = timezone.now()
+        qs = qs.filter(
+            Q(publish_start_at__isnull=True) | Q(publish_start_at__lte=now),
+            Q(publish_end_at__isnull=True)   | Q(publish_end_at__gt=now),
+        )
+
+    branch = request.GET.get("branch")
+    course = request.GET.get("course")
+    if branch: qs = qs.filter(branch_id=branch)
+    if course: qs = qs.filter(course_id=course)
+
+    pinned_first = request.GET.get("pinned_first","1").lower() in {"1","true","yes"}
+    qs = qs.order_by("-pinned","-publish_start_at","-created_at") if pinned_first else qs.order_by("-publish_start_at","-created_at")
+
+    try:
+        limit = int(request.GET.get("limit", 20))
+    except ValueError:
+        limit = 20
+    qs = qs[:min(max(limit,1), 100)]
+
+    ser = AnnouncementOut(qs, many=True, context={"request": request})
+    return Response({"results": ser.data})
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def announcement_website_detail(request, pk:int):
+    try:
+        obj = base_queryset().get(pk=pk, status="PUBLISHED", is_active=True, audience="PUBLIC")
+    except Announcement.DoesNotExist:
+        return Response({"detail":"Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if not obj.is_published_now:
+        return Response({"detail":"Not available."}, status=status.HTTP_404_NOT_FOUND)
+
+    Announcement.objects.filter(pk=obj.pk).update(view_count=obj.view_count + 1)
+
+    ser = AnnouncementOut(obj, context={"request": request})
+    return Response(ser.data)
+
+
+
+
+# events/api.py
+
+def base_qs():
+    return Event.objects.select_related("branch","course").prefetch_related("images","attachments")
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def event_website_list(request):
+    """
+    Public list:
+      ?branch=  ?course=  ?limit=20
+      ?upcoming=1         (start_at >= now)
+      ?active_only=1      (PUBLISHED + publish window içinde)
+      ?pinned_first=1
+      ?order=asc|desc     (start_at)
+      ?from=YYYY-MM-DD    ?to=YYYY-MM-DD
+    Sadece PUBLIC & is_active varsayılan filtreler uygulanır.
+    """
+    now = timezone.now()
+    qs = base_qs().filter(is_active=True, audience="PUBLIC")
+
+    # Yayın/publish ve durum
+    active_only = (request.GET.get("active_only","1").lower() in {"1","true","yes"})
+    if active_only:
+        qs = qs.filter(status="PUBLISHED").filter(
+            Q(publish_start_at__isnull=True) | Q(publish_start_at__lte=now),
+            Q(publish_end_at__isnull=True)   | Q(publish_end_at__gt=now),
+        )
+    else:
+        qs = qs.filter(status__in=["PUBLISHED","SCHEDULED"])
+
+    # Zaman filtreleri
+    if request.GET.get("upcoming","1").lower() in {"1","true","yes"}:
+        qs = qs.filter(start_at__gte=now)
+    date_from = request.GET.get("from")
+    date_to   = request.GET.get("to")
+    if date_from:
+        qs = qs.filter(start_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(start_at__date__lte=date_to)
+
+    # Scope filtreleri
+    branch = request.GET.get("branch")
+    course = request.GET.get("course")
+    if branch: qs = qs.filter(branch_id=branch)
+    if course: qs = qs.filter(course_id=course)
+
+    # Sıralama
+    order = request.GET.get("order","asc")
+    pinned_first = request.GET.get("pinned_first","1").lower() in {"1","true","yes"}
+    if pinned_first:
+        qs = qs.order_by("-pinned", ("start_at" if order=="asc" else "-start_at"), "-created_at")
+    else:
+        qs = qs.order_by(("start_at" if order=="asc" else "-start_at"), "-created_at")
+
+    # Limit
+    try:
+        limit = int(request.GET.get("limit", 20))
+    except ValueError:
+        limit = 20
+    qs = qs[:min(max(limit,1), 100)]
+
+    ser = EventOut(qs, many=True, context={"request": request})
+    return Response({"results": ser.data})
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def event_website_detail(request, pk:int):
+    try:
+        obj = base_qs().get(pk=pk, is_active=True, audience="PUBLIC")
+    except Event.DoesNotExist:
+        return Response({"detail":"Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # aktif yayın penceresi ve durum kontrolü
+    if obj.status != "PUBLISHED" or not obj.is_published_now:
+        return Response({"detail":"Not available."}, status=status.HTTP_404_NOT_FOUND)
+
+    # basit görüntülenme sayacı
+    Event.objects.filter(pk=obj.pk).update(view_count=obj.view_count + 1)
+
+    ser = EventOut(obj, context={"request": request})
+    return Response(ser.data)

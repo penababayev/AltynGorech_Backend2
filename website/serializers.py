@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import *
+from courses.models import Subject
+
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     teacher_name = serializers.SerializerMethodField()
@@ -50,3 +52,119 @@ class BranchWebSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
         read_only_fields = ("slug", "created_at", "updated_at")
+
+
+
+class CourseListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Subject
+        fields = "__all__"
+        
+
+
+
+class CourseItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = CourseItem
+        fields = [
+            "id", "subject", "name",
+            "description", 
+        ]
+
+
+
+
+# announcements/serializers.py
+
+class AnnouncementImageOut(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AnnouncementImage
+        fields = ("id","url","caption","alt","order")
+
+    def get_url(self, obj):
+        request = self.context.get("request")
+        url = obj.image.url
+        return request.build_absolute_uri(url) if request else url
+
+class AnnouncementAttachmentOut(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AnnouncementAttachment
+        fields = ("id","name","url")
+
+    def get_url(self, obj):
+        request = self.context.get("request")
+        url = obj.file.url
+        return request.build_absolute_uri(url) if request else url
+
+class AnnouncementOut(serializers.ModelSerializer):
+    images = AnnouncementImageOut(many=True, read_only=True)
+    attachments = AnnouncementAttachmentOut(many=True, read_only=True)
+    is_published_now = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Announcement
+        fields = (
+            "id","title","body","link_url",
+            "audience","priority","pinned",
+            "publish_start_at","publish_end_at",
+            "branch","course",
+            "is_published_now",
+            "images","attachments",
+        )
+
+    def get_is_published_now(self, obj):
+        return obj.is_published_now
+
+
+
+# events/serializers.py
+
+class EventImageOut(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    class Meta:
+        model = EventImage
+        fields = ("id","url","caption","alt","order")
+    def get_url(self, obj):
+        request = self.context.get("request")
+        url = obj.image.url
+        return request.build_absolute_uri(url) if request else url
+
+class EventAttachmentOut(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    class Meta:
+        model = EventAttachment
+        fields = ("id","name","url")
+    def get_url(self, obj):
+        request = self.context.get("request")
+        url = obj.file.url
+        return request.build_absolute_uri(url) if request else url
+
+class EventOut(serializers.ModelSerializer):
+    images = EventImageOut(many=True, read_only=True)
+    attachments = EventAttachmentOut(many=True, read_only=True)
+    is_published_now = serializers.SerializerMethodField()
+    is_live_now = serializers.SerializerMethodField()
+    is_upcoming = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Event
+        fields = (
+            "id","title","description","link_url",
+            "audience","priority","pinned","status","is_active",
+            "start_at","end_at",
+            "publish_start_at","publish_end_at",
+            "is_published_now","is_live_now","is_upcoming",
+            "is_online","meeting_url",
+            "venue_name","venue_address","venue_city","venue_room",
+            "capacity",
+            "branch","course",
+            "images","attachments",
+        )
+
+    def get_is_published_now(self, obj): return obj.is_published_now
+    def get_is_live_now(self, obj): return obj.is_live_now
+    def get_is_upcoming(self, obj): return obj.is_upcoming

@@ -70,7 +70,7 @@ class Course(models.Model):
         ("CANCELLED", "İptal"),
     ]
 
-    subject   = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="courses", verbose_name="Konu")
+    subject   = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="courses", verbose_name="Sapagyň ady")
     branch    = models.ForeignKey("core.Branch", on_delete=models.SET_NULL, null=True, blank=True,
                                   related_name="courses", verbose_name="Şube")
     teacher   = models.ForeignKey("staffs.Teacher", on_delete=models.SET_NULL, null=True, blank=True,

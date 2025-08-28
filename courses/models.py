@@ -10,6 +10,7 @@ from django.db import models, transaction, IntegrityError
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 
 
 
@@ -31,7 +32,7 @@ class Subject(models.Model):
     ]
 
     code        = models.CharField("Ders Kodu", max_length=32, unique=True, db_index=True)  # örn: GER-B2
-    name        = models.CharField("Ders Adı", max_length=120)                              # örn: Almanca
+    name        = models.JSONField(_("Ders Adı"), blank=False, default=dict)                              # örn: Almanca
     level       = models.CharField("Seviye", max_length=16, choices=LEVEL_CHOICES, blank=True)
     description = models.TextField("Açıklama", blank=True, null=True)
     is_active   = models.BooleanField("Aktif", default=True)

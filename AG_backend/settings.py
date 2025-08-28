@@ -28,24 +28,24 @@ DEBUG = True
 
 
 
-# #Render ucin gerek
-# ALLOWED_HOSTS = [
-#     "127.0.0.1",
-#     "localhost",
-#     "altyngorech-backend2.onrender.com",   # Render domainin
-#     # eğer özel alan adın varsa onu da ekle: "api.senin-domainin.com",
-# ]
-# # Render, HTTPS'i proxy üzerinden iletir:
-# SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+#Render ucin gerek
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "altyngorech-backend2.onrender.com",   # Render domainin
+    # eğer özel alan adın varsa onu da ekle: "api.senin-domainin.com",
+]
+# Render, HTTPS'i proxy üzerinden iletir:
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# # --- CSRF (Django 4+) ---
-# CSRF_TRUSTED_ORIGINS = [
-#     "https://altyngorech-backend2.onrender.com",
-#     # front-end domainlerin: (ör. Vercel / yerel)
-#     "https://altyngorech-one.vercel.app",
-#     "http://localhost:5173",
-# ]
-# #--Render end--
+# --- CSRF (Django 4+) ---
+CSRF_TRUSTED_ORIGINS = [
+    "https://altyngorech-backend2.onrender.com",
+    # front-end domainlerin: (ör. Vercel / yerel)
+    "https://altyngorech-one.vercel.app",
+    "http://localhost:5173",
+]
+#--Render end--
 
 
 
@@ -74,7 +74,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # "corsheaders.middleware.CorsMiddleware", #render ucin
+    "corsheaders.middleware.CorsMiddleware", #render ucin
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware', #Multiple Language ucin
@@ -86,13 +86,13 @@ MIDDLEWARE = [
 ]
 
 
-# #Render ucin
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-#     "https://altyngorech-one.vercel.app",
-# ]
-# CORS_ALLOW_CREDENTIALS = True
-# #---Render end --
+#Render ucin
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://altyngorech-one.vercel.app",
+]
+CORS_ALLOW_CREDENTIALS = True
+#---Render end --
 
 ROOT_URLCONF = 'AG_backend.urls'
 

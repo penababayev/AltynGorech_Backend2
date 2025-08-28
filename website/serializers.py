@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from courses.models import Subject
+import json
 
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
@@ -63,16 +64,48 @@ class CourseListSerializer(serializers.ModelSerializer):
 
 
 
+
+def pick_lang(d, lang: str, fallbacks=("tm", "ru", "tr", "en"), parse_json_str=True) -> str:
+    # Boş değer
+    if not d:
+        return ""
+
+    # d JSON-string olarak gelmişse (örn: '{"tm":"Merhaba"}')
+    if parse_json_str and isinstance(d, str) and d.strip().startswith("{"):
+        try:
+            d = json.loads(d)
+        except Exception:
+            # Geçersiz JSON ise string olarak bırak
+            pass
+
+    if isinstance(d, dict):
+        for key in (lang, *fallbacks):
+            val = d.get(key)
+            if val:
+                return val
+        return ""
+
+    # dict değilse (örn: düz string), olduğu gibi döndür
+    return str(d)
+
 class CourseItemSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+
     class Meta:
         model  = CourseItem
         fields = [
             "id", "subject", "name",
             "description", 
         ]
+    def _lang(self):
+        req = self.context.get("request")
+        return (req.query_params.get("lang") if req else None) or "tm"
 
+    def get_name(self, obj): return pick_lang(obj.name, self._lang())
+    def get_description(self, obj): return pick_lang(obj.description, self._lang())
 
-
+    
 
 # announcements/serializers.py
 

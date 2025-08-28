@@ -163,11 +163,11 @@ class BranchWeb(models.Model):
 #Course Items
 class CourseItem(models.Model):
     subject = models.ForeignKey("courses.Subject", on_delete=models.CASCADE, related_name='items', verbose_name="Sapagyň ady" )
-    name = models.CharField("Sapagyň kurs adlandyrmalary", max_length=200, blank=False)
-    description = models.TextField(
+    name = models.JSONField(_("Sapagyň kurs adlandyrmalary"), blank=False, default=dict)
+    description = models.JSONField(
         _("Açyklama"),
         blank=False,           # formda boş bırakılabilir
-        default="",           # mevcut kayıtlara migration'da sorun çıkarmaz
+        default=dict,           # mevcut kayıtlara migration'da sorun çıkarmaz
         help_text=_("Kursuň giňişleýin açyklamasy"))
     
 

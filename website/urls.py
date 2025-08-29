@@ -2,7 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import StudentLookupByPhone, AssessmentResultViewSet
 from courses.views_public import PublicAssessmentViewSet
+from schedule.views import *
 from .views import *
+from placement.api import *
 
 router = DefaultRouter()
 router.register(r"website/teachers", TeacherProfileViewSet, basename="website-teachers")
@@ -11,6 +13,7 @@ router.register(r"website/subjects", CourseListViewSet, basename="subject")
 router.register(r"website/subject-items", CourseItemViewSet, basename="subject-items")
 router.register(r"website/assessment-results", AssessmentResultViewSet, basename="assessment-result")
 router.register(r"website/assessments", PublicAssessmentViewSet, basename="public-assessment")
+router.register(r"website/timetable", TimetableEntryViewSet, basename="timetable")
 
 
 urlpatterns = [
@@ -20,4 +23,7 @@ urlpatterns = [
     path("api/website/announcements/<int:pk>", announcement_website_detail, name="website-announcement-detail"),
     path("api/website/events", event_website_list, name="website-event-list"),
     path("api/website/events/<int:pk>", event_website_detail, name="website-event-detail"),
+    path("api/website/schedule/weekly", WeeklyScheduleAPIView.as_view(), name="weekly_schedule"),
+     path("api/website/placement/questions", get_questions, name="placement-questions"),
+    path("api/website/submit",    submit,        name="placement-submit"),
 ]

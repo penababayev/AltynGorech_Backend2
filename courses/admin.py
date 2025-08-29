@@ -68,9 +68,53 @@ class RoomAdmin(admin.ModelAdmin):
 
 
 
-admin.site.register(models.ClassSession)
+
+@admin.register(models.ClassSession)
+class SessionAdmin(admin.ModelAdmin):
+    list_display  = ("id", "title", "type", "branch", "course", "teacher", "start_at", "end_at", "is_active")
+    list_filter   = ("type", "is_active", "branch", "course", "teacher")
+    search_fields = ("title", "notes", "course__name", "branch__name", "teacher__name")
+    date_hierarchy = "start_at"
+    ordering = ("-start_at",)
+    autocomplete_fields = ("course", "branch", "teacher")
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        ("Temel", {
+            "fields": ("title", "type", "course", "branch", "teacher", "is_active")
+        }),
+        ("Zaman", {
+            "fields": ("start_at", "end_at"),
+        }),
+        ("Yer/Online", {
+            "fields": ("is_online", "meeting_url"),
+        }),
+        ("Kapasite/Not", {
+            "fields": ("capacity", "notes"),
+        }),
+        ("Sistem", {
+            "classes": ("collapse",),
+            "fields": ("created_at", "updated_at"),
+        }),
+    )
+
+
+
+
 admin.site.register(models.Enrollment)
-admin.site.register(models.Attendance)
+
+
+
+
+@admin.register(models.Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    list_display = ("id", "session", "student", "status", "method", "check_in_at", "check_out_at", "created_at")
+    list_filter  = ("status", "method", "session__branch", "session__course", "session")
+    search_fields = ("student__name", "session__title", "note")
+    autocomplete_fields = ("session", "student")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+
 
 @admin.register(models.Assessment)
 class AssessmentAdmin(admin.ModelAdmin):

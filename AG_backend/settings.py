@@ -70,7 +70,8 @@ INSTALLED_APPS = [
     'students',
     'website',
     'placement',
-    'corsheaders'
+    'corsheaders',
+    'schedule',
 ]
 
 MIDDLEWARE = [
@@ -354,11 +355,11 @@ JAZZMIN_SETTINGS = {
     #############
     # Relative paths to custom CSS/JS scripts (must be present in static files)
     "custom_css": None,
-    "custom_js": None,
+    "custom_js": None,  # static yoluna göre,
     # Whether to link font from fonts.googleapis.com (use custom_css to supply font otherwise)
     "use_google_fonts_cdn": True,
     # Whether to show the UI customizer on the sidebar
-    "show_ui_builder": False,
+    "show_ui_builder": True,
 
     ###############
     # Change view #
@@ -374,4 +375,10 @@ JAZZMIN_SETTINGS = {
     "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
     # Add a language dropdown into the admin
     "language_chooser": True,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "sidebar_fixed": True,         # ← sol menüyü sabitler
+    "navbar_fixed": True,        # üst barı da sabitlemek istersen
+    "footer_fixed": True,
 }

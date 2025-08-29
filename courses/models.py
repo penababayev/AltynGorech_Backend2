@@ -6,9 +6,6 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction, IntegrityError
 from django.core.validators import MinValueValidator
 from django.core.validators import FileExtensionValidator
-from django.db import models, transaction, IntegrityError
-from django.core.validators import MinValueValidator
-from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -32,7 +29,7 @@ class Subject(models.Model):
     ]
 
     code        = models.CharField("Ders Kodu", max_length=32, unique=True, db_index=True)  # örn: GER-B2
-    name        = models.JSONField(_("Ders Adı"), blank=False, default=dict)                              # örn: Almanca
+    name        = models.CharField("Ders Adı", blank=False, max_length=200)                              # örn: Almanca
     level       = models.CharField("Seviye", max_length=16, choices=LEVEL_CHOICES, blank=True)
     description = models.TextField("Açıklama", blank=True, null=True)
     is_active   = models.BooleanField("Aktif", default=True)
@@ -309,20 +306,78 @@ class Room(models.Model):
 
 
 
+
+
 class ClassSession(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="sessions")
-    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name="sessions")
-    date = models.DateField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+    TYPE_LESSON = "lesson"
+    TYPE_EXAM   = "exam"
+    TYPE_EVENT  = "event"
+    COURSE_TYPES = (
+        (TYPE_LESSON, "Lesson"),
+        (TYPE_EXAM,   "Exam"),
+        (TYPE_EVENT,  "Event"),
+    )
+
+    # İlişkiler (mevcutta olduğunu varsayıyorum)
+    course  = models.ForeignKey(Course,  on_delete=models.CASCADE, related_name="sessions")
+    branch  = models.ForeignKey("core.Branch",  on_delete=models.CASCADE, related_name="sessions", null=True, blank=True)
+    teacher = models.ForeignKey("staffs.Teacher", on_delete=models.SET_NULL,   related_name="sessions", null=True, blank=True)
+
+    # İçerik
+    title = models.CharField(max_length=200)
+    type  = models.CharField(max_length=20, choices=COURSE_TYPES, default=TYPE_LESSON)
+
+    # Zaman
+    start_at = models.DateTimeField()
+    end_at   = models.DateTimeField()
+
+    # Mekan / Online
+    is_online   = models.BooleanField(default=False)
+    meeting_url = models.URLField(blank=True, null=True)
+
+    # Diğer
+    capacity = models.PositiveIntegerField(default=0)
+    notes    = models.TextField(blank=True)
+
+    # Durum
+    is_active  = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["date", "start_time"]
-        indexes = [models.Index(fields=["course", "date"])]
+        verbose_name = "Sapak sagady"
+        verbose_name_plural = "Sapak sagatlary (class session)"
+        ordering = ["start_at"]
+        indexes = [
+            models.Index(fields=["start_at"]),
+            models.Index(fields=["end_at"]),
+            models.Index(fields=["type"]),
+            models.Index(fields=["is_active"]),
+        ]
 
     def __str__(self):
-        return f"{self.course.name} - {self.date} {self.start_time}-{self.end_time}"
+        return f"{self.title} — {self.start_at.strftime('%d.%m.%Y %H:%M')}"
 
+    # --------- yardımcı özellikler ----------
+    @property
+    def is_live_now(self) -> bool:
+        now = timezone.now()
+        return self.start_at <= now <= self.end_at
+
+    @property
+    def is_upcoming(self) -> bool:
+        return timezone.now() < self.start_at
+
+    # --------- validasyon ----------
+    def clean(self):
+        if self.end_at and self.start_at and self.end_at <= self.start_at:
+            raise ValidationError("end_at, start_at'tan sonra olmalıdır.")
+        if self.is_online and not self.meeting_url:
+            raise ValidationError("Online oturumlar için meeting_url zorunludur.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 
@@ -333,20 +388,58 @@ class ClassSession(models.Model):
 
 
 
+
+
+
 class Attendance(models.Model):
-    STATUS_CHOICES = [("PRESENT", "Present"), ("ABSENT", "Absent"), ("LATE", "Late"), ("EXCUSED", "Excused")]
+    STATUS_PRESENT = "present"
+    STATUS_ABSENT  = "absent"
+    STATUS_LATE    = "late"
+    STATUS_CHOICES = (
+        (STATUS_PRESENT, "Present"),
+        (STATUS_ABSENT,  "Absent"),
+        (STATUS_LATE,    "Late"),
+    )
+
+    METHOD_FACE   = "face"
+    METHOD_CARD   = "card"
+    METHOD_MANUAL = "manual"
+    METHOD_CHOICES = (
+        (METHOD_FACE,   "Face"),
+        (METHOD_CARD,   "Card"),
+        (METHOD_MANUAL, "Manual"),
+    )
+
     session = models.ForeignKey(ClassSession, on_delete=models.CASCADE, related_name="attendances")
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="attendances")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PRESENT")
-    note = models.CharField(max_length=255, blank=True, null=True)
-    marked_at = models.DateTimeField(auto_now_add=True)
+    student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="attendances")
+
+    status  = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PRESENT)
+    method  = models.CharField(max_length=10, choices=METHOD_CHOICES, default=METHOD_MANUAL)
+
+    check_in_at  = models.DateTimeField(null=True, blank=True)
+    check_out_at = models.DateTimeField(null=True, blank=True)
+
+    note = models.CharField(max_length=255, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        verbose_name = "Gatnaşyk"
+        verbose_name_plural = "Gatnaşyklar (Ýoklama)"
         unique_together = ("session", "student")
-        indexes = [models.Index(fields=["session", "student"])]
+        indexes = [
+            models.Index(fields=["session", "student"]),
+            models.Index(fields=["status"]),
+        ]
 
     def __str__(self):
-        return f"{self.session} - {self.student} - {self.status}"
+        return f"{self.session_id} • {self.student} • {self.status}"
+
+    def clean(self):
+        if self.check_out_at and self.check_in_at and self.check_out_at < self.check_in_at:
+            raise ValidationError("check_out_at, check_in_at'tan önce olamaz.")
+
 
 
 

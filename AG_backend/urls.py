@@ -24,7 +24,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('i18n/', set_language, name='set_language'),
+    path('i18n/', set_language, name='set_language'), #Multiple Lang
     path('', include('website.urls')),
     # path('', include('placement.urls')),
 

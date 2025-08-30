@@ -153,6 +153,7 @@ LANGUAGE_CODE = 'en-us'
 
 #http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGES = [
+    ('tk', 'Türkmençe'),
     ('en', 'English'),
     ('ru', 'Russian'),
 ] #MIDDLEWAREDA HEM CODE BAR
